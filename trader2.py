@@ -33,8 +33,8 @@ cash = 10000
 
 # dictionary to track status of contracts and shares and their prices
 # format
-# put contracts = {"data_bought": [strike_price, premium, expiration_date]}
-# call contracts = {"data_bought": [strike_price, premium, expiration_date, underlying_price]}
+# put contracts = {"data_bought": [strike_price, expiration_date]}
+# call contracts = {"data_bought": [strike_price, expiration_date]}
 # shares = {price: amt}
 putContracts = {}
 callContracts = {}
@@ -97,19 +97,20 @@ for date in pd.date_range(start_date, end_date):
             # check if put contract is exercised
             returns = sell_call(value[0], underlying_price)
 
-            del putContracts[key]
+            del callContracts[key]
 
             if returns < 0:
                 # call contract is exercised
-                difference = value[3] - underlying_price
+                original_price = shares.values()[0]
+                difference = original_price - underlying_price
 
                 # update cash - could be either profit or loss
                 cash += difference * 1000
 
                 # update numShares
-                del shares[value[3]]
+                del shares[original_price]
 
-# end of strat
+# end of strategy
 
 if len(shares) > 0:
     # sell all shares
