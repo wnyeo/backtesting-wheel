@@ -28,19 +28,16 @@ def sell_call(strike_price, underlying_price):
     else:
         return None
 
-
-def wheel_strategy():
-    return
-
 # initialize the variables
 cash = 10000
 
 # dictionary to track status of contracts and shares and their prices
 # format
-# put and call contracts = {"data_bought": [strike_price, premium, expiration_date]}
+# put contracts = {"data_bought": [strike_price, premium, expiration_date]}
+# call contracts = {"data_bought": [strike_price, premium, expiration_date, underlying_price]}
+# shares = {price: amt}
 putContracts = {}
 callContracts = {}
-# shares = {price: amt}
 shares = {}
 
 # loop through each trading day from start to end date
@@ -77,7 +74,7 @@ for date in pd.date_range(start_date, end_date):
                     shares[underlying_price] = 1000
 
                 # update cash
-                cash += returns
+                cash -= underlying_price * 1000
                 pass
 
     # start of bearish neutral strategy
@@ -104,7 +101,26 @@ for date in pd.date_range(start_date, end_date):
 
             if returns < 0:
                 # call contract is exercised
+                difference = value[3] - underlying_price
 
+                # update cash - could be either profit or loss
+                cash += difference * 1000
+
+                # update numShares
+                del shares[value[3]]
+
+# end of strat
+
+if len(shares) > 0:
+    # sell all shares
+    # get current share price
+    current_price = 100
+
+    for key, value in shares:
+        cash += current_price * value
+
+print(cash)
+                
                 
 
             
