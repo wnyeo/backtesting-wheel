@@ -1,16 +1,11 @@
 import yfinance as yf
 import pandas as pd
-from datetime import datetime, timedelta
-
-
-# Define the underlying asset and option symbol
-stock_symbol = 'SPY'
-option_symbol = 'SPY220617C00450000'  # Replace with a valid option symbol for SPY
+from datetime import datetime, timedelta, date
+from getData import getCallData, getPutData
 
 # Define the start and end dates for the backtest
-start_date = '1/1/2015'
-end_date = '12/31/2019'
-
+start_date = date(2018, 1, 2)
+end_date = date(2023, 1, 1)
 
 # per option - 100 shares
 def sell_put(strike_price, underlying_price):
@@ -33,6 +28,7 @@ cash = 10000
 
 # dictionary to track status of contracts and shares and their prices
 # format
+# !!!!!!!!!!!!!!!!!!!!!!!!!! edit this
 # put contracts = {"data_bought": [strike_price, expiration_date]}
 # call contracts = {"data_bought": [strike_price, expiration_date]}
 # shares = {price: amt}
@@ -40,23 +36,35 @@ putContracts = {}
 callContracts = {}
 shares = {}
 
+def daterange(start_date, end_date):
+    for n in range(int((end_date - start_date).days)):
+        yield start_date + timedelta(n)
+
 # loop through each trading day from start to end date
-for date in pd.date_range(start_date, end_date):
+for single_date in pd.date_range(start_date, end_date):
+    year = single_date.strftime("%Y")
+    month = single_date.strftime("%m")
+
     # start of bullish neutral strategy
     if len(shares) == 0 and len(putContracts) == 0 and len(callContracts == 0) : # need to edit this
         # get required info for put contracts
-        # sieve out info for put contracts and choose
+        result = getPutData(single_date)
 
-        # sell 10 put contracts and save details needed during expiry in dictionary strike_price, expiration_date
-        putContracts[date] = [100, date + timedelta(days=45)] 
+        # if there is a suitable contract
+        if result:
+            premium, dte, expdate, strike, underlying_price, delta = result
 
-        # premium * 10
-        cash += 12.50 * 10
+            # sell 10 put contracts and save details needed during expiry in dictionary strike_price, expiration_date
+            putContracts[single_date] = [strike, single_date + timedelta(days=dte)] 
+
+            # premium * 10
+            cash += premium * 1000
 
     # check if there are contracts expiring today
     for key, value in putContracts:
-        if value[2] == date:
-            # get price of underlying asset tod
+        if value[2] == single_date:
+            # get price of underlying asset today 
+            # !!!!!
             underlying_price = 100
         
             # check if put contract is exercised
@@ -79,14 +87,18 @@ for date in pd.date_range(start_date, end_date):
 
     # start of bearish neutral strategy
     if len(shares) > 0 and len(callContracts == 0):
-        # get required info for call contracts
-        # sieve out info for call contracts and choose
+        # get required info for put contracts
+        result = getCallData(single_date)
 
-        # sell 10 call contracts and save details needed during expiry in dictionary strike_price, expiration_date
-        callContracts[date] = [100, date + timedelta(days=45)] 
+        # if there is a suitable contract
+        if result:
+            premium, dte, expdate, strike, underlying_price, delta = result
 
-        # premium * 10
-        cash += 12.50 * 10
+            # sell 10 call contracts and save details needed during expiry in dictionary strike_price, expiration_date
+            callContracts[single_date] = [strike, single_date + timedelta(days=dte)] 
+
+            # premium * 10
+            cash += 12.50 * 10
 
     # check if there are call contracts expiring today
     for key, value in callContracts:
@@ -121,8 +133,3 @@ if len(shares) > 0:
         cash += current_price * value
 
 print(cash)
-                
-                
-
-            
-
