@@ -7,7 +7,7 @@ def getCallData(givenDate):
     year = givenDate.strftime("%Y")
     month = givenDate.strftime("%m")
     day = givenDate.strftime("%d")
-    df = pd.read_csv('data/spy_eod_' + year + '/spy_eod_' + year + month + '.txt')
+    df = pd.read_csv('data/spy_eod_' + year + '/spy_eod_' + year + month + '.txt', low_memory=False)
 
     givenDate = " " + givenDate.strftime("%Y-%m-%d")
     try: 
@@ -26,11 +26,19 @@ def getCallData(givenDate):
         df = df.iloc[(df[' [C_DELTA]']-0.35).abs().argsort()][:1].reset_index(drop=True)
 
         expiry = df.loc[0][' [EXPIRE_DATE]'][1:]
-        
         expiry = datetime.strptime(expiry, '%Y-%m-%d').date()
-        # return price, dte, expdate, strike, underlying price, delta
-        return df.loc[0][' [C_LAST]'], df.loc[0][' [DTE]'], expiry, df.loc[0][' [STRIKE]'], df.loc[0][' [UNDERLYING_LAST]'], df.loc[0][' [C_DELTA]'], 
+        price = float(df.loc[0][' [C_LAST]'])
+        dte = int(df.loc[0][' [DTE]'])
+        strike = float(df.loc[0][' [STRIKE]'])
+        underlying = float(df.loc[0][' [UNDERLYING_LAST]'])
+        delta = float(df.loc[0][' [C_DELTA]'])
 
+        # return price, dte, expdate, strike, underlying price, delta
+        if price > 0:
+            return price, dte, expiry, strike, underlying, delta
+
+        return None
+    
     except:
         return None
     # return individual values
@@ -42,7 +50,7 @@ def getPutData(givenDate):
     year = givenDate.strftime("%Y")
     month = givenDate.strftime("%m")
     day = givenDate.strftime("%d")
-    df = pd.read_csv('data/spy_eod_' + year + '/spy_eod_' + year + month + '.txt')
+    df = pd.read_csv('data/spy_eod_' + year + '/spy_eod_' + year + month + '.txt', low_memory=False)
 
     givenDate = " " + givenDate.strftime("%Y-%m-%d")
 
@@ -62,15 +70,25 @@ def getPutData(givenDate):
         df = df.iloc[(df[' [P_DELTA]']- (-0.35)).abs().argsort()][:1].reset_index(drop=True)
 
         expiry = df.loc[0][' [EXPIRE_DATE]'][1:]
-        
         expiry = datetime.strptime(expiry, '%Y-%m-%d').date()
-        # return price, dte, expdate, strike, underlying price, delta
-        return df.loc[0][' [P_LAST]'], df.loc[0][' [DTE]'], expiry, df.loc[0][' [STRIKE]'], df.loc[0][' [UNDERLYING_LAST]'], df.loc[0][' [P_DELTA]'], 
+        price = float(df.loc[0][' [P_LAST]'])
+        dte = int(df.loc[0][' [DTE]'])
+        strike = float(df.loc[0][' [STRIKE]'])
+        underlying = float(df.loc[0][' [UNDERLYING_LAST]'])
+        delta = float(df.loc[0][' [P_DELTA]'])
+
+        # print(type(price), type(dte), type(expiry), type(strike), type(underlying), type(delta))
+    
+    # return price, dte, expdate, strike, underlying price, delta
+        if price > 0:
+            return price, dte, expiry, strike, underlying, delta
+
+        return None
 
     except:
         return None
     # return individual values
-# print(getPutData(date(2018, 1, 10)))
+print(getPutData(date(2018, 1, 10)))
 
 # Define the start and end dates for the backtest
 startDate = date(2018, 1, 2)

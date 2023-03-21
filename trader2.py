@@ -25,7 +25,7 @@ def sell_put(strike_price, underlying_price):
     if underlying_price < strike_price:
         return (strike_price - underlying_price) * 100
     else:
-        return None
+        return False
 
 # per option - 100 shares
 def sell_call(strike_price, underlying_price):
@@ -33,7 +33,7 @@ def sell_call(strike_price, underlying_price):
     if underlying_price > strike_price:
         return (underlying_price - strike_price) * 100 
     else:
-        return None
+        return False
 
 # initialize the variables
 cash = 10000
@@ -56,7 +56,8 @@ for single_date in pd.date_range(startDate, endDate):
     month = single_date.strftime("%m")
 
     # start of bullish neutral strategy
-    if len(shares) == 0 and len(putContracts) == 0 and len(callContracts == 0) : # need to edit this
+    # print(len(shares), len(putContracts), len(callContracts))
+    if len(shares) == 0 and len(putContracts) == 0 and len(callContracts) == 0: # need to edit this
         # get required info for put contracts
         result = getPutData(single_date)
 
@@ -70,31 +71,33 @@ for single_date in pd.date_range(startDate, endDate):
             # premium
             cash += premium * 1000
             print("Put contract sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(premium *1000))
-
+            # print(putContracts)
         else:
             print("No suitable put contract found on " + single_date.strftime("%Y-%m-%d"))
-        
+        pass
 
     # check if there are contracts expiring today
-    if putContracts[0] == single_date:
-        # get price of underlying asset today 
-        # !!!!!
-        underlying_price = getUnderlyingData(single_date, df=underlyingData)
-    
-        # check if put contract is exercised
-        returns = sell_put(value[4], underlying_price)
+    if len(putContracts) > 0:
+        if putContracts[3].strftime("%Y-%m-%d") == single_date.strftime("%Y-%m-%d"):
+            # get price of underlying asset today 
+            underlying_price = getUnderlyingData(single_date, df=underlyingData)
 
-        putContracts = []
+            # check if put contract is exercised
+            returns = sell_put(putContracts[4], underlying_price)
 
-        if returns < 0:
-            # put contract is exercised
-            # update numShares
-            # shares = [data_bought, amt, price_bought]
-            shares = [single_date, 1000, value[4]]
+            if returns != False:
+                # put contract is exercised
+                # update numShares
+                # shares = [data_bought, amt, price_bought]
+                shares = [single_date, 1000, putContracts[4]]
+                print("Shares bought on " + single_date.strftime("%Y-%m-%d") + " for " + str(putContracts[4] * 1000))
 
+            else:
+                print("put contract not exercised")
+            putContracts = []
 
     # start of bearish neutral strategy
-    if len(shares) > 0 and len(callContracts == 0):
+    if len(shares) > 0 and len(putContracts) == 0 and len(callContracts) == 0:
         # get required info for call contracts
         result = getCallData(single_date)
 
@@ -102,42 +105,43 @@ for single_date in pd.date_range(startDate, endDate):
         if result:
             premium, dte, expdate, strike, underlying_price, delta = result
 
-            # sell 10 call contracts and save details needed during expiry in dictionary strike_price, expiration_date
-            callContracts[single_date] = [strike, single_date + timedelta(days=dte)] 
+            # sell 10 call contracts (100 shares each) and save details needed during expiry in list
+            callContracts = [single_date, premium, dte, expdate, strike, underlying_price, delta] 
 
-            # premium * 10
-            cash += 12.50 * 10
-
+            # premium
+            
+            cash += premium * 1000
+            print("Call contract sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(premium *1000))
+            # print(callContracts)
+        else:
+            print("No suitable call contract found on " + single_date.strftime("%Y-%m-%d"))
+        pass
     # check if there are call contracts expiring today
-    for key, value in callContracts:
-        if value[2] == date:
+    if len(callContracts) > 0:
+        if callContracts[3].strftime("%Y-%m-%d") == single_date.strftime("%Y-%m-%d"):
             # get price of underlying asset today
-            underlying_price = 100
-        
+            underlying_price = getUnderlyingData(single_date, df=underlyingData)
+
             # check if put contract is exercised
-            returns = sell_call(value[0], underlying_price)
+            returns = sell_call(callContracts[4], underlying_price)
 
-            del callContracts[key]
 
-            if returns < 0:
+            if returns != False:
                 # call contract is exercised
-                original_price = shares.values()[0]
-                difference = original_price - underlying_price
+                original_price = shares[2]
+                difference = original_price - callContracts[4]
 
                 # update cash - could be either profit or loss
                 cash += difference * 1000
 
                 # update numShares
-                del shares[original_price]
+                shares = []
+                print("Shares sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(callContracts[4] * 1000))
+            else:
+                print("Call contract not exercised")
 
+            callContracts = []
 # end of strategy
 
-if len(shares) > 0:
-    # sell all shares
-    # get current share price
-    current_price = 100
-
-    for key, value in shares:
-        cash += current_price * value
-
+print(shares)
 print(cash)
