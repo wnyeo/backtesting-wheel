@@ -4,8 +4,20 @@ from datetime import datetime, timedelta, date
 from getData import getCallData, getPutData
 
 # Define the start and end dates for the backtest
-start_date = date(2018, 1, 2)
-end_date = date(2023, 1, 1)
+startDate = date(2018, 1, 2)
+endDate = date(2023, 1, 1)
+
+ticker = "SPY"
+
+underlyingData = yf.download(ticker, start=startDate, end=endDate)
+
+def getUnderlyingData(dateGiven, df=underlyingData):
+    dateGiven = dateGiven.strftime("%Y-%m-%d")
+    try:
+        return underlyingData.loc[dateGiven]['Close']
+
+    except:
+        return None
 
 # per option - 100 shares
 def sell_put(strike_price, underlying_price):
@@ -26,22 +38,20 @@ def sell_call(strike_price, underlying_price):
 # initialize the variables
 cash = 10000
 
-# dictionary to track status of contracts and shares and their prices
-# format
-# !!!!!!!!!!!!!!!!!!!!!!!!!! edit this
-# put contracts = {"data_bought": [strike_price, expiration_date]}
-# call contracts = {"data_bought": [strike_price, expiration_date]}
-# shares = {price: amt}
-putContracts = {}
-callContracts = {}
-shares = {}
+# track contracts and shares
+# put contracts = [data_bought, premium, dte, expiration_date, premium, strike price, underlying price, delta]
+# call contracts = [data_bought, premium, dte, expiration_date, premium, strike price, underlying price, delta]
+# shares = [data_bought, amt, price_bought]
+putContracts = []
+callContracts = []
+shares = []
 
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days)):
         yield start_date + timedelta(n)
 
 # loop through each trading day from start to end date
-for single_date in pd.date_range(start_date, end_date):
+for single_date in pd.date_range(startDate, endDate):
     year = single_date.strftime("%Y")
     month = single_date.strftime("%m")
 
@@ -54,40 +64,38 @@ for single_date in pd.date_range(start_date, end_date):
         if result:
             premium, dte, expdate, strike, underlying_price, delta = result
 
-            # sell 10 put contracts and save details needed during expiry in dictionary strike_price, expiration_date
-            putContracts[single_date] = [strike, single_date + timedelta(days=dte)] 
+            # sell 10 put contracts (100 shares each) and save details needed during expiry in list
+            putContracts = [single_date, premium, dte, expdate, strike, underlying_price, delta] 
 
-            # premium * 10
+            # premium
             cash += premium * 1000
+            print("Put contract sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(premium *1000))
+
+        else:
+            print("No suitable put contract found on " + single_date.strftime("%Y-%m-%d"))
+        
 
     # check if there are contracts expiring today
-    for key, value in putContracts:
-        if value[2] == single_date:
-            # get price of underlying asset today 
-            # !!!!!
-            underlying_price = 100
-        
-            # check if put contract is exercised
-            returns = sell_put(value[0], underlying_price)
+    if putContracts[0] == single_date:
+        # get price of underlying asset today 
+        # !!!!!
+        underlying_price = getUnderlyingData(single_date, df=underlyingData)
+    
+        # check if put contract is exercised
+        returns = sell_put(value[4], underlying_price)
 
-            del putContracts[key]
+        putContracts = []
 
-            if returns < 0:
-                # put contract is exercised
+        if returns < 0:
+            # put contract is exercised
+            # update numShares
+            # shares = [data_bought, amt, price_bought]
+            shares = [single_date, 1000, value[4]]
 
-                # update numShares
-                if underlying_price in shares:
-                    shares[underlying_price] += 1000
-                else:
-                    shares[underlying_price] = 1000
-
-                # update cash
-                cash -= underlying_price * 1000
-                pass
 
     # start of bearish neutral strategy
     if len(shares) > 0 and len(callContracts == 0):
-        # get required info for put contracts
+        # get required info for call contracts
         result = getCallData(single_date)
 
         # if there is a suitable contract
