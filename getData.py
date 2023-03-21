@@ -41,7 +41,7 @@ def getCallData(givenDate):
     
     except:
         return None
-    # return individual values
+
 # print(getCallData(date(2018, 1, 10)))
 
 
@@ -87,27 +87,9 @@ def getPutData(givenDate):
 
     except:
         return None
-    # return individual values
-print(getPutData(date(2018, 1, 10)))
+    
 
-# Define the start and end dates for the backtest
-startDate = date(2018, 1, 2)
-endDate = date(2023, 1, 1)
-ticker = "SPY"
-
-# function to get data from yfinance
-def getStockData(ticker, start_date, end_date, givenDate):
-    # symbol = "SPY"
-    data = yf.download(ticker, start=start_date, end=end_date)
-    givenDate = givenDate.strftime("%Y-%m-%d")
-    try:
-        print(data.loc[givenDate]['Close'])
-    # return data
-    except:
-        print("no data")
-        return None
-getStockData(ticker, startDate, endDate, date(2018, 1, 10))
-
+# print(getPutData(date(2018, 1, 10)))
 
 
 

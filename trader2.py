@@ -1,6 +1,6 @@
 import yfinance as yf
 import pandas as pd
-from datetime import datetime, timedelta, date
+from datetime import timedelta, date
 from getData import getCallData, getPutData
 
 # Define the start and end dates for the backtest
@@ -36,7 +36,7 @@ def sell_call(strike_price, underlying_price):
         return False
 
 # initialize the variables
-cash = 10000
+cash = 300000
 
 # track contracts and shares
 # put contracts = [data_bought, premium, dte, expiration_date, premium, strike price, underlying price, delta]
@@ -56,7 +56,6 @@ for single_date in pd.date_range(startDate, endDate):
     month = single_date.strftime("%m")
 
     # start of bullish neutral strategy
-    # print(len(shares), len(putContracts), len(callContracts))
     if len(shares) == 0 and len(putContracts) == 0 and len(callContracts) == 0: # need to edit this
         # get required info for put contracts
         result = getPutData(single_date)
@@ -70,8 +69,10 @@ for single_date in pd.date_range(startDate, endDate):
 
             # premium
             cash += premium * 1000
+            
             print("Put contract sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(premium *1000))
-            # print(putContracts)
+            print(f"Cash: {cash}")
+
         else:
             print("No suitable put contract found on " + single_date.strftime("%Y-%m-%d"))
         pass
@@ -91,9 +92,12 @@ for single_date in pd.date_range(startDate, endDate):
                 # shares = [data_bought, amt, price_bought]
                 shares = [single_date, 1000, putContracts[4]]
                 print("Shares bought on " + single_date.strftime("%Y-%m-%d") + " for " + str(putContracts[4] * 1000))
+                cash -= putContracts[4] * 1000
+                print(f"Cash: {cash}")
 
             else:
-                print("put contract not exercised")
+                print("Put contract not exercised")
+
             putContracts = []
 
     # start of bearish neutral strategy
@@ -109,13 +113,14 @@ for single_date in pd.date_range(startDate, endDate):
             callContracts = [single_date, premium, dte, expdate, strike, underlying_price, delta] 
 
             # premium
-            
             cash += premium * 1000
             print("Call contract sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(premium *1000))
-            # print(callContracts)
+            print(f"Cash: {cash}")
+
         else:
             print("No suitable call contract found on " + single_date.strftime("%Y-%m-%d"))
         pass
+
     # check if there are call contracts expiring today
     if len(callContracts) > 0:
         if callContracts[3].strftime("%Y-%m-%d") == single_date.strftime("%Y-%m-%d"):
@@ -125,18 +130,18 @@ for single_date in pd.date_range(startDate, endDate):
             # check if put contract is exercised
             returns = sell_call(callContracts[4], underlying_price)
 
-
             if returns != False:
                 # call contract is exercised
-                original_price = shares[2]
-                difference = original_price - callContracts[4]
+                # original_price = shares[2]
+                # difference = original_price - callContracts[4]
 
                 # update cash - could be either profit or loss
-                cash += difference * 1000
+                cash += callContracts[4] * 1000
 
                 # update numShares
                 shares = []
                 print("Shares sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(callContracts[4] * 1000))
+                print(f"Cash: {cash}")
             else:
                 print("Call contract not exercised")
 
