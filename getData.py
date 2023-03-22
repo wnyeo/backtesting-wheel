@@ -79,7 +79,7 @@ def getPutData(givenDate):
 
         # print(type(price), type(dte), type(expiry), type(strike), type(underlying), type(delta))
     
-    # return price, dte, expdate, strike, underlying price, delta
+        # return price, dte, expdate, strike, underlying price, delta
         if price > 0:
             return price, dte, expiry, strike, underlying, delta
 
@@ -87,9 +87,22 @@ def getPutData(givenDate):
 
     except:
         return None
-    
 
 # print(getPutData(date(2018, 1, 10)))
 
+def underlyingFromOptions(givenDate):
+    year = givenDate.strftime("%Y")
+    month = givenDate.strftime("%m")
+    day = givenDate.strftime("%d")
+    df = pd.read_csv('data/spy_eod_' + year + '/spy_eod_' + year + month + '.txt', low_memory=False)
 
+    givenDate = " " + givenDate.strftime("%Y-%m-%d")
 
+    try:
+        # filter out the relevant rows
+        df = df.loc[df[' [QUOTE_DATE]'] == givenDate].reset_index(drop=True)
+        underlying = float(df.loc[0][' [UNDERLYING_LAST]'])
+        return underlying
+    
+    except:
+        return None
