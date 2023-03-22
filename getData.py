@@ -18,12 +18,12 @@ def getCallData(givenDate):
         df = df.loc[df[' [DTE]'] > 35]
         df = df.loc[df[' [DTE]'] < 45]
         
-        # filter out relevant rows with C_DELTA nearest to 0.35
-        df = df.loc[df[' [C_DELTA]'] > 0.3]
-        df = df.loc[df[' [C_DELTA]'] < 0.4]
+        # filter out relevant rows with C_DELTA nearest to 0.30
+        df = df.loc[df[' [C_DELTA]'] > 0.2]
+        df = df.loc[df[' [C_DELTA]'] < 0.3]
 
-        # return row that has delta closest to 0.35
-        df = df.iloc[(df[' [C_DELTA]']-0.35).abs().argsort()][:1].reset_index(drop=True)
+        # return row that has delta closest to 0.30
+        df = df.sort_values(by=' [C_DELTA]', ascending=False).reset_index(drop=True)
 
         expiry = df.loc[0][' [EXPIRE_DATE]'][1:]
         expiry = datetime.strptime(expiry, '%Y-%m-%d').date()
@@ -42,7 +42,7 @@ def getCallData(givenDate):
     except:
         return None
 
-# print(getCallData(date(2018, 1, 10)))
+# print(getCallData(date(2018, 1, 2)))
 
 
 # function to get the data for a particular date (with processing)
@@ -62,12 +62,12 @@ def getPutData(givenDate):
         df = df.loc[df[' [DTE]'] > 35]
         df = df.loc[df[' [DTE]'] < 45]
         
-        # filter out relevant rows with C_DELTA nearest to 0.35
-        df = df.loc[df[' [P_DELTA]'] > -0.4]
-        df = df.loc[df[' [P_DELTA]'] < -0.3]
+        # filter out relevant rows with P_DELTA nearest to 0.30
+        df = df.loc[df[' [P_DELTA]'] > -0.3]
+        df = df.loc[df[' [P_DELTA]'] < -0.2]
 
-        # return row that has delta closest to 0.35
-        df = df.iloc[(df[' [P_DELTA]']- (-0.35)).abs().argsort()][:1].reset_index(drop=True)
+        # return row that has delta closest to -0.30
+        df = df.sort_values(by=' [P_DELTA]', ascending=True).reset_index(drop=True)
 
         expiry = df.loc[0][' [EXPIRE_DATE]'][1:]
         expiry = datetime.strptime(expiry, '%Y-%m-%d').date()
