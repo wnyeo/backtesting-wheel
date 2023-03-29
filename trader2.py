@@ -5,7 +5,7 @@ from getData import getCallData, getPutData, underlyingFromOptions
 
 # Define the start and end dates for the backtest
 startDate = date(2018, 1, 2)
-endDate = date(2022, 12, 31)
+endDate = date(2022, 12, 30)
 
 ticker = "SPY"
 
@@ -34,6 +34,12 @@ def sell_call(strike_price, underlying_price):
         return (underlying_price - strike_price) * 100 
     else:
         return False
+    
+# calculate the NAV
+def calculateNAV(cash, underlying_price, shares):
+    if len(shares) == 0:
+        return cash
+    return cash + (underlying_price * shares[1])
 
 # initialize the variables
 cash = 500000
@@ -49,6 +55,9 @@ callContracts = []
 shares = []
 cycle = [0, 0, 0, cash, 0, ]
 pnl = []
+dailyPnL = []
+dates = []
+
 
 
 def daterange(start_date, end_date):
@@ -57,8 +66,8 @@ def daterange(start_date, end_date):
 
 # loop through each trading day from start to end date
 for single_date in pd.date_range(startDate, endDate):
-    year = single_date.strftime("%Y")
-    month = single_date.strftime("%m")
+
+    
 
     # start of bullish neutral strategy
     if len(shares) == 0 and len(putContracts) == 0 and len(callContracts) == 0: 
@@ -82,12 +91,11 @@ for single_date in pd.date_range(startDate, endDate):
 
         else:
             print("No suitable put contract found on " + single_date.strftime("%Y-%m-%d"))
-        pass
-
+        
     # check if there are contracts expiring today
     if len(putContracts) > 0:
         if putContracts[3].strftime("%Y-%m-%d") == single_date.strftime("%Y-%m-%d"):
-            # get price of underlying asset today 
+            # get price of underlying asset today
             underlying_price = getUnderlyingData(single_date, df=underlyingData)
 
             # check if put contract is exercised
@@ -132,8 +140,7 @@ for single_date in pd.date_range(startDate, endDate):
 
         else:
             print("No suitable call contract found on " + single_date.strftime("%Y-%m-%d"))
-        pass
-
+        
     # check if there are call contracts expiring today
     if len(callContracts) > 0:
         if callContracts[3].strftime("%Y-%m-%d") == single_date.strftime("%Y-%m-%d"):
@@ -177,7 +184,11 @@ for single_date in pd.date_range(startDate, endDate):
                 print("Call contract not exercised")
 
             callContracts = []
-
+    
+    
+    # nav = calculateNAV(cash, shares)
+    dailyPnL.append(nav-500000)
+    dates.append(single_date)
 
             
 
@@ -185,9 +196,9 @@ for single_date in pd.date_range(startDate, endDate):
 print(pnl)
 print(cash)
 # check for any shares left
-
+print(dailyPnL)
+df = pd.DataFrame(dailyPnL)
+df.to_csv("dailyPnL.csv")
 # check for any contracts left
 
-
-# find out the pnl for each cycle
 # calculate the unrealised pnl for underlying if the call options expire worthless and looping to find suitable call option
