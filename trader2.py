@@ -35,11 +35,7 @@ def sell_call(strike_price, underlying_price):
     else:
         return False
     
-# calculate the NAV
-def calculateNAV(cash, underlying_price, shares):
-    if len(shares) == 0:
-        return cash
-    return cash + (underlying_price * shares[1])
+
 
 # initialize the variables
 cash = 500000
@@ -52,13 +48,13 @@ cash = 500000
 # pnl = [] # at the end of each cycle
 putContracts = []
 callContracts = []
-shares = []
+shares = [None, 0, None]
 cycle = [0, 0, 0, cash, 0, ]
 pnl = []
 dailyPnL = []
 dates = []
-
-
+costBasis = 0
+costArr = []
 
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days)):
@@ -67,10 +63,8 @@ def daterange(start_date, end_date):
 # loop through each trading day from start to end date
 for single_date in pd.date_range(startDate, endDate):
 
-    
-
     # start of bullish neutral strategy
-    if len(shares) == 0 and len(putContracts) == 0 and len(callContracts) == 0: 
+    if shares[1] == 0  and len(putContracts) == 0 and len(callContracts) == 0: 
         # get required info for put contracts
         result = getPutData(single_date)
 
@@ -109,6 +103,7 @@ for single_date in pd.date_range(startDate, endDate):
                 shares = [single_date, 1000, putContracts[4]]
                 print("Shares bought on " + single_date.strftime("%Y-%m-%d") + " for " + str(putContracts[4] * 1000))
                 cash -= putContracts[4] * 1000
+                costBasis = putContracts[4] * 1000
                 print(f"Cash: {cash}")
                 
                 cycle[1] = putContracts[4]
@@ -119,7 +114,7 @@ for single_date in pd.date_range(startDate, endDate):
             putContracts = []
 
     # start of bearish neutral strategy
-    if len(shares) > 0 and len(putContracts) == 0 and len(callContracts) == 0:
+    if shares[1] > 0 and len(putContracts) == 0 and len(callContracts) == 0:
         # get required info for call contracts
         result = getCallData(single_date)
 
@@ -158,7 +153,7 @@ for single_date in pd.date_range(startDate, endDate):
                 cash += callContracts[4] * 1000
 
                 # update numShares
-                shares = []
+                shares = [None, 0, None]
                 print("Shares sold on " + single_date.strftime("%Y-%m-%d") + " for " + str(callContracts[4] * 1000))
                 print(f"Cash: {cash} \n")
 
@@ -179,26 +174,38 @@ for single_date in pd.date_range(startDate, endDate):
                 pnl.append(profits)
     
                 cycle = [0, 0, 0, cash, 0]
-
+                costBasis = 0
             else:
                 print("Call contract not exercised")
 
             callContracts = []
     
-    
-    # nav = calculateNAV(cash, shares)
-    dailyPnL.append(nav-500000)
-    dates.append(single_date)
 
+    # get price of underlying asset today
+    underlying_price = getUnderlyingData(single_date, df=underlyingData)
+
+    # calculate the NAV
+    nav = cash
+    if shares[1] > 0:
+        underlying_price = getUnderlyingData(single_date, df=underlyingData)
+        if underlying_price != None:
+            nav = cash + (underlying_price * shares[1])
+            dailyPnL.append(nav-500000)
+        else:
+            dailyPnL.append(dailyPnL[-1])
             
+    else:
+        dailyPnL.append(nav-500000)
+
+    dates.append(single_date)
+    costArr.append(costBasis)
 
 # end of strategy
 print(pnl)
 print(cash)
 # check for any shares left
-print(dailyPnL)
+# print(dailyPnL)
 df = pd.DataFrame(dailyPnL)
-df.to_csv("dailyPnL.csv")
-# check for any contracts left
-
-# calculate the unrealised pnl for underlying if the call options expire worthless and looping to find suitable call option
+df.index = dates
+df['costBase'] = costArr
+df.to_csv("trader2pnl.csv")
